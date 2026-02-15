@@ -296,154 +296,186 @@ class CounterSheet extends StatelessWidget {
       text: currentTarget.toString(),
     );
 
-    // Default state for the toggle switch
     bool updateAllDays = true;
 
     showDialog(
       context: context,
       builder: (context) {
-        // StatefulBuilder is required here to update the Switch UI
-        // inside the Dialog without rebuilding the entire page.
         return StatefulBuilder(
           builder: (context, setState) {
             return Dialog(
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(24),
               ),
-              elevation: 5,
-              backgroundColor: Colors.transparent,
+              elevation: 10,
               child: Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(24),
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Edit Icon
-                    Container(
-                      padding: const EdgeInsets.all(15),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF00695C).withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.edit_note,
-                        size: 35,
-                        color: Color(0xFF00695C),
-                      ),
-                    ),
-
-                    const SizedBox(height: 15),
-
-                    const Text(
-                      "Update Target",
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      "Set a new goal for this Zikr",
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // Input Field
-                    TextField(
-                      controller: textCtrl,
-                      keyboardType: TextInputType.number,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF00695C),
-                      ),
-                      decoration: InputDecoration(
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 15,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Top Handle
+                      Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 15),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        filled: true,
-                        fillColor: Colors.grey.shade100,
-                        border: OutlineInputBorder(
+                      ),
+
+                      // Icon & Title
+                      const Icon(
+                        Icons.track_changes_rounded,
+                        size: 45,
+                        color: Color(0xFF00695C),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        "Update Target",
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF004D40),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        "Adjust your goal for this Zikr",
+                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                      ),
+
+                      const SizedBox(height: 25),
+
+                      /// --- Modern Input Field ---
+                      TextField(
+                        controller: textCtrl,
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        autofocus: true,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF00695C),
+                        ),
+                        decoration: InputDecoration(
+                          labelText: "New Target",
+                          floatingLabelAlignment: FloatingLabelAlignment.center,
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(15),
+                            borderSide: const BorderSide(
+                              color: Colors.transparent,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(15),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF00695C),
+                              width: 1.5,
+                            ),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 20,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 15),
+
+                      /// --- Switch Card ---
+                      Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE0F2F1),
                           borderRadius: BorderRadius.circular(15),
-                          borderSide: BorderSide.none,
                         ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 15),
-
-                    // Scope Selection Switch
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      activeColor: const Color(0xFF00695C),
-                      title: const Text(
-                        "Apply to all future days?",
-                        style: TextStyle(fontSize: 14),
-                      ),
-                      value: updateAllDays,
-                      onChanged: (val) {
-                        setState(() {
-                          updateAllDays = val;
-                        });
-                      },
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // Action Buttons
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                            ),
-                            child: Text(
-                              "Cancel",
-                              style: TextStyle(color: Colors.grey.shade600),
+                        child: SwitchListTile(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          activeColor: const Color(0xFF00695C),
+                          title: const Text(
+                            "Apply to all future days?",
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF004D40),
                             ),
                           ),
+                          secondary: const Icon(
+                            Icons.auto_mode_rounded,
+                            color: Color(0xFF00695C),
+                          ),
+                          value: updateAllDays,
+                          onChanged: (val) {
+                            setState(() {
+                              updateAllDays = val;
+                            });
+                          },
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {
-                              int? newTarget = int.tryParse(textCtrl.text);
-                              if (newTarget != null && newTarget > 0) {
-                                // Calls controller method with the scope flag
-                                ctrl.updateTarget(
-                                  index,
-                                  newTarget,
-                                  updateAllDays,
-                                );
-                                Navigator.pop(context);
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF00695C),
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
+                      ),
+
+                      const SizedBox(height: 25),
+
+                      // Action Buttons
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 15,
+                                ),
+                                foregroundColor: Colors.grey[700],
                               ),
-                              elevation: 2,
+                              child: const Text(
+                                "Cancel",
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
                             ),
-                            child: const Text("Save"),
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () {
+                                int? newTarget = int.tryParse(textCtrl.text);
+                                if (newTarget != null && newTarget > 0) {
+                                  ctrl.updateTarget(
+                                    index,
+                                    newTarget,
+                                    updateAllDays,
+                                  );
+                                  Navigator.pop(context);
+                                }
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF00695C),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 15,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(15),
+                                ),
+                                elevation: 2,
+                              ),
+                              child: const Text(
+                                "Save Changes",
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );

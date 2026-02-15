@@ -197,88 +197,174 @@ class HomeView extends StatelessWidget {
           builder: (context, setState) {
             return Dialog(
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(24),
               ),
-              backgroundColor: Colors.transparent,
+              elevation: 10,
               child: Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(24),
                 ),
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 15),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
                       const Text(
                         "Add New Zikr",
                         style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF004D40), // একটু ডার্ক টিল কালার
                         ),
                       ),
+                      const SizedBox(height: 25),
 
-                      const SizedBox(height: 20),
-
-                      /// Title input.
+                      /// --- Zikr Name TextField ---
                       TextField(
                         controller: titleCtrl,
                         textCapitalization: TextCapitalization.sentences,
                         decoration: InputDecoration(
                           labelText: "Zikr Name",
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(15),
-                            borderSide: BorderSide.none,
+                          hintText: "e.g. Subhanallah",
+                          prefixIcon: const Icon(
+                            Icons.edit_note_rounded,
+                            color: Color(0xFF00695C),
                           ),
                           filled: true,
+                          fillColor: Colors.grey[100],
+                          labelStyle: const TextStyle(color: Colors.grey),
+                          floatingLabelStyle: const TextStyle(
+                            color: Color(0xFF00695C),
+                            fontWeight: FontWeight.bold,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(15),
+                            borderSide: const BorderSide(
+                              color: Colors.transparent,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(15),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF00695C),
+                              width: 1.5,
+                            ),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 18,
+                          ),
                         ),
                       ),
 
-                      const SizedBox(height: 15),
+                      const SizedBox(height: 16),
 
-                      /// Target input.
+                      /// --- Daily Target TextField ---
                       TextField(
                         controller: targetCtrl,
                         keyboardType: TextInputType.number,
                         decoration: InputDecoration(
                           labelText: "Daily Target",
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(15),
-                            borderSide: BorderSide.none,
+                          hintText: "100",
+                          prefixIcon: const Icon(
+                            Icons.track_changes_rounded,
+                            color: Color(0xFF00695C),
                           ),
                           filled: true,
+                          fillColor: Colors.grey[100],
+                          labelStyle: const TextStyle(color: Colors.grey),
+                          floatingLabelStyle: const TextStyle(
+                            color: Color(0xFF00695C),
+                            fontWeight: FontWeight.bold,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(15),
+                            borderSide: const BorderSide(
+                              color: Colors.transparent,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(15),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF00695C),
+                              width: 1.5,
+                            ),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 18,
+                          ),
                         ),
                       ),
 
-                      const SizedBox(height: 15),
+                      const SizedBox(height: 10),
 
-                      /// Option to add to future days.
-                      SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        activeColor: const Color(0xFF00695C),
-                        title: const Text(
-                          "Add to all future days?",
-                          style: TextStyle(fontSize: 14),
+                      /// --- Switch ListTile ---
+                      Container(
+                        margin: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(
+                            0xFFE0F2F1,
+                          ), // হালকা টিল ব্যাকগ্রাউন্ড
+                          borderRadius: BorderRadius.circular(15),
                         ),
-                        value: addToAllDays,
-                        onChanged: (val) {
-                          setState(() {
-                            addToAllDays = val;
-                          });
-                        },
+                        child: SwitchListTile(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          activeColor: const Color(0xFF00695C),
+                          title: const Text(
+                            "Add to all future days?",
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF004D40),
+                            ),
+                          ),
+                          secondary: const Icon(
+                            Icons.calendar_month_outlined,
+                            color: Color(0xFF00695C),
+                          ),
+                          value: addToAllDays,
+                          onChanged: (val) {
+                            setState(() {
+                              addToAllDays = val;
+                            });
+                          },
+                        ),
                       ),
 
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 25),
 
+                      /// --- Buttons ---
                       Row(
                         children: [
                           Expanded(
                             child: TextButton(
                               onPressed: () => Navigator.pop(context),
-                              child: const Text("Cancel"),
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 15,
+                                ),
+                                foregroundColor: Colors.grey[700],
+                              ),
+                              child: const Text(
+                                "Cancel",
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
                             ),
                           ),
-                          const SizedBox(width: 10),
+                          const SizedBox(width: 12),
                           Expanded(
                             child: ElevatedButton(
                               onPressed: () {
@@ -294,8 +380,18 @@ class HomeView extends StatelessWidget {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF00695C),
                                 foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 15,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(15),
+                                ),
+                                elevation: 2,
                               ),
-                              child: const Text("Add Now"),
+                              child: const Text(
+                                "Add Now",
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
                             ),
                           ),
                         ],
@@ -315,43 +411,121 @@ class HomeView extends StatelessWidget {
   void _showYearPicker(BuildContext context, AmolController ctrl) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Select Ramadan Year", textAlign: TextAlign.center),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        content: SizedBox(
-          height: 300,
-          width: 300,
-          child: ListView.builder(
-            itemCount: 16,
-            itemBuilder: (context, index) {
-              int year = 2025 + index;
-              bool isSelected = year == ctrl.selectedYear;
+      builder: (_) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(28),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.calendar_month_rounded,
+                color: Color(0xFF00695C),
+                size: 40,
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                "Select Ramadan Year",
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF004D40),
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                height: 350,
+                width: double.maxFinite,
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  physics: const BouncingScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: 2.5,
+                  ),
+                  itemCount: 16,
+                  itemBuilder: (context, index) {
+                    int year = 2025 + index;
+                    bool isSelected = year == ctrl.selectedYear;
 
-              return ListTile(
-                title: Text(
-                  "Ramadan $year",
+                    return InkWell(
+                      onTap: () {
+                        ctrl.changeDayOrYear(year, ctrl.selectedDay);
+                        Navigator.pop(context);
+                      },
+                      borderRadius: BorderRadius.circular(15),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? const Color(0xFF00695C)
+                              : Colors.grey[100],
+                          borderRadius: BorderRadius.circular(15),
+                          border: Border.all(
+                            color: isSelected
+                                ? const Color(0xFF00695C)
+                                : Colors.transparent,
+                          ),
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color: const Color(
+                                      0xFF00695C,
+                                    ).withOpacity(0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        alignment: Alignment.center,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (isSelected)
+                              const Icon(
+                                Icons.check_circle,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                            if (isSelected) const SizedBox(width: 8),
+                            Text(
+                              "$year",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.w600,
+                                color: isSelected
+                                    ? Colors.white
+                                    : Colors.black87,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 15),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  "Close",
                   style: TextStyle(
-                    fontWeight: isSelected
-                        ? FontWeight.bold
-                        : FontWeight.normal,
-                    color: isSelected
-                        ? const Color(0xFF00695C)
-                        : Colors.black87,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                trailing: isSelected
-                    ? const Icon(Icons.check_circle, color: Color(0xFF00695C))
-                    : const Icon(
-                        Icons.arrow_forward_ios,
-                        size: 14,
-                        color: Colors.grey,
-                      ),
-                onTap: () {
-                  ctrl.changeDayOrYear(year, ctrl.selectedDay);
-                  Navigator.pop(context);
-                },
-              );
-            },
+              ),
+            ],
           ),
         ),
       ),
