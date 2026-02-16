@@ -1,40 +1,36 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/amol_model.dart';
 
-/// Controller responsible for managing daily Amol tracking,
-/// Hive storage, and user actions.
+/// Controller responsible for managing daily Amol data,
+/// template data, counting logic, and monthly statistics.
 class AmolController extends GetxController {
-  /// Hive box storing daily Amol data by date key.
+  /// Hive box that stores daily Amol data (30 days per year).
   late Box<List> amolBox;
 
-  /// Hive box storing master template list.
+  /// Hive box that stores the master template list.
   late Box<List> templateBox;
 
   /// Currently selected year.
   int selectedYear = 2026;
 
-  /// Currently selected day.
+  /// Currently selected Ramadan day (1–30).
   int selectedDay = 1;
 
-  /// List of Amol items for the selected date.
+  /// List of Amol items for the selected day.
   List<AmolItem> dailyAmols = [];
 
-  /// Total target count of all items.
+  /// Total target count of all Amols for the day.
   int get totalTarget => dailyAmols.fold(0, (sum, item) => sum + item.target);
 
-  /// Total completed count of all items.
+  /// Total completed count of all Amols for the day.
   int get totalDone =>
       dailyAmols.fold(0, (sum, item) => sum + item.currentCount);
 
-  /// Overall progress ratio (0.0 - 1.0).
-  double get progress {
-    if (totalTarget == 0) return 0.0;
-    double val = totalDone / totalTarget;
-    return val > 1.0 ? 1.0 : val;
-  }
+  /// Overall progress ratio (0.0 – 1.0).
+  double get progress =>
+      totalTarget == 0 ? 0.0 : (totalDone / totalTarget).clamp(0.0, 1.0);
 
   @override
   void onInit() {
@@ -47,6 +43,7 @@ class AmolController extends GetxController {
     amolBox = await Hive.openBox<List>('ramadan_daily_box_v3');
     templateBox = await Hive.openBox<List>('ramadan_template_box_v3');
 
+    /// If template is empty, insert default Amol list.
     if (templateBox.isEmpty) {
       await templateBox.put('master_list', _getInitialDefaults());
     }
@@ -54,7 +51,7 @@ class AmolController extends GetxController {
     loadDailyData();
   }
 
-  /// Returns default Amol template list.
+  /// Returns the default master Amol template list.
   List<AmolItem> _getInitialDefaults() {
     return [
       AmolItem(title: "Subhanallah", target: 200),
@@ -70,225 +67,215 @@ class AmolController extends GetxController {
     ];
   }
 
-  /// Loads daily data and syncs with master template.
+  /// Loads daily data for the selected year and day.
+  /// If no data exists, it creates a fresh copy from master template.
   void loadDailyData() {
     String dateKey = "${selectedYear}_$selectedDay";
 
-    List<dynamic> rawTemplates =
-        templateBox.get('master_list') ?? _getInitialDefaults();
-    List<AmolItem> masterTemplates = rawTemplates.cast<AmolItem>();
+    List<AmolItem> masterTemplates =
+        (templateBox.get('master_list') ?? _getInitialDefaults())
+            .cast<AmolItem>();
 
     List<AmolItem> todayData = [];
+
     if (amolBox.containsKey(dateKey)) {
-      todayData = amolBox.get(dateKey)!.cast<AmolItem>();
-    }
+      todayData = amolBox.get(dateKey)!.cast<AmolItem>().toList();
+    } else {
+      todayData = masterTemplates
+          .map(
+            (e) => AmolItem(
+              title: e.title,
+              target: e.target,
+              currentCount: 0,
+              isCompleted: false,
+            ),
+          )
+          .toList();
 
-    for (var template in masterTemplates) {
-      bool exists = todayData.any((element) => element.title == template.title);
-
-      if (!exists) {
-        todayData.add(
-          AmolItem(
-            title: template.title,
-            target: template.target,
-            currentCount: 0,
-            isCompleted: false,
-          ),
-        );
-      }
+      amolBox.put(dateKey, todayData);
     }
 
     dailyAmols = todayData;
-    saveData();
     update();
   }
 
-  /// Saves current daily data to Hive.
+  /// Saves the current day's data into Hive.
   void saveData() {
     String key = "${selectedYear}_$selectedDay";
     amolBox.put(key, dailyAmols);
+
+    /// Update only dashboard statistics UI.
     update(['dashboard_stat']);
   }
 
-  /// Increments count of a specific item.
-  /// Handles 33-count notification and completion state.
+  /// Increments the count of a specific Amol item.
+  /// Triggers light haptic feedback and completion logic.
   void incrementCount(int index) {
     var item = dailyAmols[index];
     item.currentCount++;
     HapticFeedback.lightImpact();
 
+    /// Shows a snackbar alert at every 33 counts
+    /// for selected Tasbih items.
     if (["Subhanallah", "Alhamdulillah", "Allahu Akbar"].contains(item.title)) {
       if (item.currentCount > 0 && item.currentCount % 33 == 0) {
         Get.snackbar(
-          "33 Counts Completed",
-          "You have recited ${item.title} 33 times.",
+          "33 Completed",
+          "${item.title} 33 times",
           snackPosition: SnackPosition.TOP,
-          duration: const Duration(seconds: 1),
-          backgroundColor: Colors.blueGrey,
-          colorText: Colors.white,
-          margin: const EdgeInsets.all(10),
-          borderRadius: 10,
+          duration: 1.seconds,
         );
       }
     }
 
+    /// Marks as completed if target reached.
     if (item.currentCount >= item.target && !item.isCompleted) {
       item.isCompleted = true;
       HapticFeedback.heavyImpact();
-      Get.snackbar(
-        "Alhamdulillah",
-        "${item.title} Completed!",
-        snackPosition: SnackPosition.TOP,
-        duration: const Duration(seconds: 2),
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-        margin: const EdgeInsets.all(10),
-        borderRadius: 10,
-      );
     }
 
     saveData();
     update(['item_$index', 'dashboard_stat']);
   }
 
-  /// Updates target value for current day.
-  /// If [isGlobal] is true, updates master template as well.
+  /// Updates the target of a specific Amol.
+  /// If global is true, updates master list and all 30 days.
   void updateTarget(int index, int newTarget, bool isGlobal) {
-    var item = dailyAmols[index];
+    String title = dailyAmols[index].title;
 
-    item.target = newTarget;
-    item.isCompleted = item.currentCount >= item.target;
+    dailyAmols[index].target = newTarget;
+    dailyAmols[index].isCompleted = dailyAmols[index].currentCount >= newTarget;
+
     saveData();
 
     if (isGlobal) {
-      List<dynamic> rawTemplates = templateBox.get('master_list') ?? [];
-      List<AmolItem> masterTemplates = rawTemplates.cast<AmolItem>();
+      List<AmolItem> master = (templateBox.get('master_list') ?? [])
+          .cast<AmolItem>()
+          .toList();
 
-      for (var masterItem in masterTemplates) {
-        if (masterItem.title == item.title) {
-          masterItem.target = newTarget;
-          break;
+      for (var e in master) {
+        if (e.title == title) e.target = newTarget;
+      }
+
+      templateBox.put('master_list', master);
+
+      /// Update all existing daily entries of this year.
+      for (int i = 1; i <= 30; i++) {
+        String key = "${selectedYear}_$i";
+
+        if (amolBox.containsKey(key)) {
+          List<AmolItem> dayData = amolBox.get(key)!.cast<AmolItem>().toList();
+
+          for (var e in dayData) {
+            if (e.title == title) e.target = newTarget;
+          }
+
+          amolBox.put(key, dayData);
         }
       }
-      templateBox.put('master_list', masterTemplates);
     }
 
     update(['item_$index', 'dashboard_stat']);
   }
 
   /// Adds a new Amol item.
-  /// If [isGlobal] is true, adds to master list and future days.
+  /// If global is true, it is added to master and all 30 days.
   void addNewAmol(String title, int target, bool isGlobal) {
-    AmolItem newItem = AmolItem(
-      title: title,
-      target: target,
-      currentCount: 0,
-      isCompleted: false,
-    );
+    if (dailyAmols.any((e) => e.title == title)) return;
 
-    if (!dailyAmols.any((e) => e.title == title)) {
-      dailyAmols.add(newItem);
-      saveData();
-    }
+    dailyAmols.add(AmolItem(title: title, target: target));
+    saveData();
 
     if (isGlobal) {
-      List<dynamic> rawTemplates = templateBox.get('master_list') ?? [];
-      List<AmolItem> masterTemplates = rawTemplates.cast<AmolItem>();
+      List<AmolItem> master = (templateBox.get('master_list') ?? [])
+          .cast<AmolItem>()
+          .toList();
 
-      if (!masterTemplates.any((e) => e.title == title)) {
-        masterTemplates.add(AmolItem(title: title, target: target));
-        templateBox.put('master_list', masterTemplates);
+      if (!master.any((e) => e.title == title)) {
+        master.add(AmolItem(title: title, target: target));
+        templateBox.put('master_list', master);
       }
 
-      for (int i = selectedDay + 1; i <= 30; i++) {
-        String futureKey = "${selectedYear}_$i";
-        List<AmolItem> futureList = [];
+      /// Ensures new Amol exists in all 30 days.
+      for (int i = 1; i <= 30; i++) {
+        String key = "${selectedYear}_$i";
 
-        if (amolBox.containsKey(futureKey)) {
-          var rawList = amolBox.get(futureKey);
-          if (rawList != null) {
-            futureList = List<AmolItem>.from(rawList.cast<AmolItem>());
-          }
-        } else {
-          futureList = masterTemplates
-              .map(
-                (e) => AmolItem(
-                  title: e.title,
-                  target: e.target,
-                  currentCount: 0,
-                  isCompleted: false,
-                ),
-              )
-              .toList();
+        List<AmolItem> dayData = amolBox.containsKey(key)
+            ? amolBox.get(key)!.cast<AmolItem>().toList()
+            : master
+                  .map((e) => AmolItem(title: e.title, target: e.target))
+                  .toList();
+
+        if (!dayData.any((e) => e.title == title)) {
+          dayData.add(AmolItem(title: title, target: target));
         }
 
-        if (!futureList.any((item) => item.title == title)) {
-          futureList.add(
-            AmolItem(
-              title: title,
-              target: target,
-              currentCount: 0,
-              isCompleted: false,
-            ),
-          );
-
-          amolBox.put(futureKey, futureList);
-        } else if (!amolBox.containsKey(futureKey)) {
-          amolBox.put(futureKey, futureList);
-        }
+        amolBox.put(key, dayData);
       }
     }
 
     update();
   }
 
-  /// Deletes an item from daily list and master template.
-  void deleteAmol(int index) {
-    String titleToRemove = dailyAmols[index].title;
+  /// Deletes an Amol item.
+  /// If global is true, removes from master and all 30 days.
+  void deleteAmol(int index, bool isGlobal) {
+    String title = dailyAmols[index].title;
 
     dailyAmols.removeAt(index);
     saveData();
 
-    List<dynamic> rawTemplates = templateBox.get('master_list') ?? [];
-    List<AmolItem> masterTemplates = rawTemplates.cast<AmolItem>();
+    if (isGlobal) {
+      List<AmolItem> master = (templateBox.get('master_list') ?? [])
+          .cast<AmolItem>()
+          .toList();
 
-    masterTemplates.removeWhere((item) => item.title == titleToRemove);
-    templateBox.put('master_list', masterTemplates);
+      master.removeWhere((e) => e.title == title);
+      templateBox.put('master_list', master);
+
+      /// Remove from all 30 days.
+      for (int i = 1; i <= 30; i++) {
+        String key = "${selectedYear}_$i";
+
+        if (amolBox.containsKey(key)) {
+          List<AmolItem> dayData = amolBox.get(key)!.cast<AmolItem>().toList();
+
+          dayData.removeWhere((e) => e.title == title);
+          amolBox.put(key, dayData);
+        }
+      }
+    }
 
     update();
   }
 
-  /// Resets count and completion state of an item.
+  /// Resets count and completion state of a specific Amol.
   void resetAmol(int index) {
     dailyAmols[index].currentCount = 0;
     dailyAmols[index].isCompleted = false;
+
     saveData();
     update(['item_$index', 'dashboard_stat']);
-
-    Get.snackbar(
-      "Reset",
-      "Count reset to 0",
-      duration: const Duration(seconds: 1),
-      snackPosition: SnackPosition.TOP,
-    );
   }
 
-  /// Changes selected date and reloads data.
+  /// Changes selected year or day and reloads data.
   void changeDayOrYear(int year, int day) {
     selectedYear = year;
     selectedDay = day;
     loadDailyData();
   }
 
-  /// Returns aggregated monthly statistics (Day 1–30).
+  /// Returns aggregated monthly statistics
+  /// (total count per Amol title).
   Map<String, int> getMonthStats() {
     Map<String, int> stats = {};
     for (int i = 1; i <= 30; i++) {
       String key = "${selectedYear}_$i";
       if (amolBox.containsKey(key)) {
-        List<dynamic> dayList = amolBox.get(key)!;
-        for (var item in dayList) {
-          if (item is AmolItem) {
+        var rawList = amolBox.get(key);
+        if (rawList != null) {
+          List<AmolItem> dayList = rawList.cast<AmolItem>();
+          for (var item in dayList) {
             stats[item.title] = (stats[item.title] ?? 0) + item.currentCount;
           }
         }

@@ -11,73 +11,93 @@ import 'package:share_plus/share_plus.dart';
 import '../models/amol_model.dart';
 import 'amol_controller.dart';
 
-/// Controller responsible for exporting and restoring
-/// Ramadan Amol data using JSON backup files.
+/// Controller responsible for handling backup (export)
+/// and restore (import) operations of Ramadan Amol data.
 class BackupController extends GetxController {
-  /// Reference to AmolController for refreshing UI after restore.
+  /// Reference to the main AmolController.
   final AmolController amolCtrl = Get.find<AmolController>();
 
-  /// Creates a JSON backup file from Hive data
-  /// and shares it via system share dialog.
+  /// --------------------------------------------------------------------------
+  /// 1. CREATE BACKUP (EXPORT)
+  /// --------------------------------------------------------------------------
+
+  /// Creates a JSON backup file containing:
+  /// - App metadata
+  /// - Master template list
+  /// - All daily data
+  /// Then shares the file using system share options.
   Future<void> createBackup() async {
     try {
+      /// Show loading indicator.
       Get.dialog(
         const Center(child: CircularProgressIndicator()),
         barrierDismissible: false,
       );
 
       final Box<List> dailyBox = Hive.box<List>('ramadan_daily_box_v3');
+      final Box<List> templateBox = Hive.box<List>('ramadan_template_box_v3');
 
+      /// Base backup structure.
       Map<String, dynamic> backupData = {
-        'version': '1.0',
+        'version': '1.1',
         'timestamp': DateTime.now().toIso8601String(),
         'app_name': 'RamadanAmolTracker',
+        'master_template': [],
         'data': {},
       };
 
+      /// Backup master template list.
+      if (templateBox.containsKey('master_list')) {
+        var masterRaw = templateBox.get('master_list');
+        backupData['master_template'] = masterRaw!
+            .cast<AmolItem>()
+            .map((e) => e.toJson())
+            .toList();
+      }
+
+      /// Backup all daily entries.
       for (var key in dailyBox.keys) {
         var rawList = dailyBox.get(key);
         if (rawList != null) {
-          List<Map<String, dynamic>> jsonList = rawList
+          backupData['data'][key.toString()] = rawList
               .cast<AmolItem>()
               .map((e) => e.toJson())
               .toList();
-
-          backupData['data'][key.toString()] = jsonList;
         }
       }
 
+      /// Convert to JSON and write temporary file.
       String jsonString = jsonEncode(backupData);
-
       final directory = await getTemporaryDirectory();
       String dateStr = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
-
       final file = File('${directory.path}/Ramadan_Backup_$dateStr.json');
-
       await file.writeAsString(jsonString);
 
       if (Get.isDialogOpen ?? false) Get.back();
 
+      /// Share the backup file.
       await Share.shareXFiles([
         XFile(file.path),
       ], text: 'My Ramadan Amol Tracker Backup ($dateStr)');
     } catch (e) {
       if (Get.isDialogOpen ?? false) Get.back();
 
-      print("Backup Error: $e");
-
+      /// Show error message if backup fails.
       Get.snackbar(
         "Backup Failed",
         "Error: $e",
         backgroundColor: Colors.red,
         colorText: Colors.white,
-        duration: const Duration(seconds: 5),
       );
     }
   }
 
-  /// Opens file picker to select a JSON backup file
-  /// and shows a confirmation dialog before restoring.
+  /// --------------------------------------------------------------------------
+  /// 2. RESTORE BACKUP (IMPORT)
+  /// --------------------------------------------------------------------------
+
+  /// Opens file picker and allows user to select a JSON backup file.
+  /// Shows confirmation dialog before restoring.
   Future<void> restoreBackup() async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -88,6 +108,7 @@ class BackupController extends GetxController {
       if (result != null && result.files.single.path != null) {
         File file = File(result.files.single.path!);
 
+        /// Confirmation dialog before replacing existing data.
         Get.dialog(
           AlertDialog(
             shape: RoundedRectangleBorder(
@@ -108,7 +129,7 @@ class BackupController extends GetxController {
               ],
             ),
             content: const Text(
-              "This will delete all your current progress and replace it with the data from the backup file. This action cannot be undone.",
+              "All current data will be replaced with the backup file. This cannot be undone.",
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey),
             ),
@@ -116,13 +137,7 @@ class BackupController extends GetxController {
             actions: [
               TextButton(
                 onPressed: () => Get.back(),
-                child: Text(
-                  "Cancel",
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                child: const Text("Cancel"),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
@@ -130,21 +145,14 @@ class BackupController extends GetxController {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  elevation: 0,
                 ),
                 onPressed: () async {
                   Get.back();
                   await _processRestore(file);
                 },
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 10),
-                  child: Text(
-                    "RESTORE",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                child: const Text(
+                  "RESTORE",
+                  style: TextStyle(color: Colors.white),
                 ),
               ),
             ],
@@ -152,39 +160,55 @@ class BackupController extends GetxController {
         );
       }
     } catch (e) {
+      /// Show file picker error.
       Get.snackbar(
         "Error",
         "Picker Error: $e",
         backgroundColor: Colors.red,
         colorText: Colors.white,
-        snackPosition: SnackPosition.BOTTOM,
       );
     }
   }
 
-  /// Processes restore operation:
-  /// - Clears existing Hive data
-  /// - Inserts data from backup file
-  /// - Reloads UI data
+  /// Processes the restore operation:
+  /// - Clears existing data
+  /// - Restores master template
+  /// - Restores daily data
+  /// - Refreshes UI
   Future<void> _processRestore(File file) async {
     try {
+      /// Show loading indicator during restore.
       Get.dialog(
         const Center(child: CircularProgressIndicator()),
         barrierDismissible: false,
       );
 
       String jsonString = await file.readAsString();
-
       Map<String, dynamic> decodedData = jsonDecode(jsonString);
 
       if (decodedData['data'] == null) {
-        throw "Invalid File";
+        throw "Invalid File Structure";
       }
 
       final Box<List> dailyBox = Hive.box<List>('ramadan_daily_box_v3');
+      final Box<List> templateBox = Hive.box<List>('ramadan_template_box_v3');
 
+      /// Clear existing data before restore.
       await dailyBox.clear();
+      await templateBox.clear();
 
+      /// Restore master template if available.
+      if (decodedData['master_template'] != null) {
+        List<dynamic> masterJson = decodedData['master_template'];
+
+        List<AmolItem> masterList = masterJson
+            .map((e) => AmolItem.fromJson(e))
+            .toList();
+
+        await templateBox.put('master_list', masterList);
+      }
+
+      /// Restore daily data entries.
       Map<String, dynamic> dataMap = decodedData['data'];
 
       for (var key in dataMap.keys) {
@@ -199,17 +223,20 @@ class BackupController extends GetxController {
 
       if (Get.isDialogOpen ?? false) Get.back();
 
+      /// Refresh UI after restore.
       amolCtrl.loadDailyData();
 
       Get.snackbar(
         "Success",
-        "Data Restored!",
+        "Alhamdulillah! Data Restored Successfully.",
         backgroundColor: Colors.green,
         colorText: Colors.white,
+        snackPosition: SnackPosition.TOP,
       );
     } catch (e) {
       if (Get.isDialogOpen ?? false) Get.back();
 
+      /// Show restore failure message.
       Get.snackbar(
         "Error",
         "Restore Failed: $e",

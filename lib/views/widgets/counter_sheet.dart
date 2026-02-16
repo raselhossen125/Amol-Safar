@@ -195,90 +195,138 @@ class CounterSheet extends StatelessWidget {
     String title,
     int index,
   ) {
+    bool deleteAllFuture = true;
+
     showDialog(
       context: context,
       builder: (context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          backgroundColor: Colors.white,
-          elevation: 5,
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Warning Icon
-                Container(
-                  padding: const EdgeInsets.all(15),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.warning_amber_rounded,
-                    size: 40,
-                    color: Colors.red,
-                  ),
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
                 ),
-
-                const SizedBox(height: 15),
-
-                const Text(
-                  "Delete Zikr?",
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-
-                const SizedBox(height: 10),
-
-                Text(
-                  "Are you sure you want to delete '$title'? This will remove it from all future lists.",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey.shade600),
-                ),
-
-                const SizedBox(height: 25),
-
-                // Action Buttons
-                Row(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Expanded(
-                      child: TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        child: Text(
-                          "Cancel",
-                          style: TextStyle(color: Colors.grey.shade600),
-                        ),
+                    // Warning Icon
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.delete_forever_rounded,
+                        size: 40,
+                        color: Colors.red,
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          ctrl.deleteAmol(index);
-                          Navigator.pop(context); // Close Confirmation
-                          Navigator.pop(context); // Close Bottom Sheet
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                    const SizedBox(height: 16),
+                    const Text(
+                      "Delete Zikr?",
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      "Are you sure you want to remove '$title'?",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Scope Selection Card
+                    Container(
+                      decoration: BoxDecoration(
+                        color: deleteAllFuture
+                            ? Colors.red.withOpacity(0.05)
+                            : Colors.grey[100],
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(
+                          color: deleteAllFuture
+                              ? Colors.red.withOpacity(0.2)
+                              : Colors.transparent,
+                        ),
+                      ),
+                      child: SwitchListTile(
+                        activeColor: Colors.red,
+                        title: const Text(
+                          "Remove from all future days?",
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                        child: const Text("Delete"),
+                        secondary: Icon(
+                          Icons.auto_delete_rounded,
+                          color: deleteAllFuture ? Colors.red : Colors.grey,
+                        ),
+                        value: deleteAllFuture,
+                        onChanged: (val) {
+                          setState(() => deleteAllFuture = val);
+                        },
                       ),
+                    ),
+
+                    const SizedBox(height: 25),
+
+                    // Action Buttons
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: Text(
+                              "Cancel",
+                              style: TextStyle(
+                                color: Colors.grey[700],
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              ctrl.deleteAmol(index, deleteAllFuture);
+                              Navigator.pop(context); // Close Confirmation
+                              Navigator.pop(
+                                context,
+                              ); // Close Bottom Sheet (Counter sheet)
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 15),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: const Text(
+                              "Delete",
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
