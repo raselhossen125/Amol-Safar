@@ -140,54 +140,67 @@ class AmolController extends GetxController {
   /// If global is true, updates all 30 days of the selected year.
   void updateTarget(int index, int newTarget, bool isGlobal) {
     String title = dailyAmols[index].title;
-
     dailyAmols[index].target = newTarget;
     dailyAmols[index].isCompleted = dailyAmols[index].currentCount >= newTarget;
-
     saveData();
 
     if (isGlobal) {
       for (int i = 1; i <= 30; i++) {
         String key = "${selectedYear}_$i";
-
         if (amolBox.containsKey(key)) {
           List<AmolItem> dayData = amolBox.get(key)!.cast<AmolItem>().toList();
-
           for (var e in dayData) {
-            if (e.title == title) e.target = newTarget;
+            if (e.title == title) {
+              e.target = newTarget;
+              e.isCompleted = e.currentCount >= newTarget;
+            }
           }
-
           amolBox.put(key, dayData);
         }
       }
     }
-
     update(['item_$index', 'dashboard_stat']);
   }
 
   /// Adds a new Amol to current day.
   /// If global is true, adds to all 30 days of selected year.
   void addNewAmol(String title, int target, bool isGlobal) {
-    if (dailyAmols.any((e) => e.title == title)) return;
-
-    dailyAmols.add(AmolItem(title: title, target: target));
-    saveData();
+    if (!dailyAmols.any((e) => e.title == title)) {
+      dailyAmols.add(AmolItem(title: title, target: target));
+      saveData();
+    }
 
     if (isGlobal) {
+      List<AmolItem> masterTemplates =
+          (templateBox.get('master_list') ?? _getInitialDefaults())
+              .cast<AmolItem>()
+              .toList();
+
       for (int i = 1; i <= 30; i++) {
         String key = "${selectedYear}_$i";
+        List<AmolItem> dayData = [];
 
-        List<AmolItem> dayData = amolBox.containsKey(key)
-            ? amolBox.get(key)!.cast<AmolItem>().toList()
-            : [];
+        if (amolBox.containsKey(key)) {
+          dayData = amolBox.get(key)!.cast<AmolItem>().toList();
+        } else {
+          dayData = masterTemplates
+              .map(
+                (e) => AmolItem(
+                  title: e.title,
+                  target: e.target,
+                  currentCount: 0,
+                  isCompleted: false,
+                ),
+              )
+              .toList();
+        }
 
-        if (dayData.isNotEmpty && !dayData.any((e) => e.title == title)) {
+        if (!dayData.any((e) => e.title == title)) {
           dayData.add(AmolItem(title: title, target: target));
-          amolBox.put(key, dayData);
+          amolBox.put(key, dayData); // Box-e save kora
         }
       }
     }
-
     update();
     update(['dashboard_stat']);
   }
