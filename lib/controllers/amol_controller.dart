@@ -3,13 +3,13 @@ import 'package:get/get.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/amol_model.dart';
 
-/// Controller responsible for managing daily Amol data,
-/// template data, counting logic, and monthly statistics.
+/// Controller that manages daily Amol data,
+/// yearly isolation, counting logic, and statistics.
 class AmolController extends GetxController {
-  /// Hive box that stores daily Amol data (30 days per year).
+  /// Hive box storing daily Amol data (year_day based).
   late Box<List> amolBox;
 
-  /// Hive box that stores the master template list.
+  /// Hive box storing master template list.
   late Box<List> templateBox;
 
   /// Currently selected year.
@@ -21,10 +21,10 @@ class AmolController extends GetxController {
   /// List of Amol items for the selected day.
   List<AmolItem> dailyAmols = [];
 
-  /// Total target count of all Amols for the day.
+  /// Total target of all Amols for the day.
   int get totalTarget => dailyAmols.fold(0, (sum, item) => sum + item.target);
 
-  /// Total completed count of all Amols for the day.
+  /// Total completed count for the day.
   int get totalDone =>
       dailyAmols.fold(0, (sum, item) => sum + item.currentCount);
 
@@ -38,12 +38,12 @@ class AmolController extends GetxController {
     _initHive();
   }
 
-  /// Initializes Hive boxes and loads initial data.
+  /// Initializes Hive boxes and ensures master template exists.
   Future<void> _initHive() async {
     amolBox = await Hive.openBox<List>('ramadan_daily_box_v3');
     templateBox = await Hive.openBox<List>('ramadan_template_box_v3');
 
-    /// If template is empty, insert default Amol list.
+    /// Insert default template if empty.
     if (templateBox.isEmpty) {
       await templateBox.put('master_list', _getInitialDefaults());
     }
@@ -51,7 +51,7 @@ class AmolController extends GetxController {
     loadDailyData();
   }
 
-  /// Returns the default master Amol template list.
+  /// Returns default master Amol template list.
   List<AmolItem> _getInitialDefaults() {
     return [
       AmolItem(title: "Subhanallah", target: 200),
@@ -67,21 +67,20 @@ class AmolController extends GetxController {
     ];
   }
 
-  /// Loads daily data for the selected year and day.
-  /// If no data exists, it creates a fresh copy from master template.
+  /// Loads daily data for selected year and day.
+  /// If not available, creates a fresh copy from template.
   void loadDailyData() {
     String dateKey = "${selectedYear}_$selectedDay";
 
-    List<AmolItem> masterTemplates =
-        (templateBox.get('master_list') ?? _getInitialDefaults())
-            .cast<AmolItem>();
-
-    List<AmolItem> todayData = [];
-
     if (amolBox.containsKey(dateKey)) {
-      todayData = amolBox.get(dateKey)!.cast<AmolItem>().toList();
+      dailyAmols = amolBox.get(dateKey)!.cast<AmolItem>().toList();
     } else {
-      todayData = masterTemplates
+      List<AmolItem> masterTemplates =
+          (templateBox.get('master_list') ?? _getInitialDefaults())
+              .cast<AmolItem>()
+              .toList();
+
+      dailyAmols = masterTemplates
           .map(
             (e) => AmolItem(
               title: e.title,
@@ -92,31 +91,30 @@ class AmolController extends GetxController {
           )
           .toList();
 
-      amolBox.put(dateKey, todayData);
+      amolBox.put(dateKey, dailyAmols);
     }
 
-    dailyAmols = todayData;
     update();
+    update(['dashboard_stat']);
   }
 
-  /// Saves the current day's data into Hive.
+  /// Saves current day's data into Hive.
   void saveData() {
     String key = "${selectedYear}_$selectedDay";
     amolBox.put(key, dailyAmols);
 
-    /// Update only dashboard statistics UI.
+    /// Update dashboard statistics.
     update(['dashboard_stat']);
   }
 
-  /// Increments the count of a specific Amol item.
-  /// Triggers light haptic feedback and completion logic.
+  /// Increments count of a specific Amol item.
+  /// Handles haptic feedback and completion state.
   void incrementCount(int index) {
     var item = dailyAmols[index];
     item.currentCount++;
     HapticFeedback.lightImpact();
 
-    /// Shows a snackbar alert at every 33 counts
-    /// for selected Tasbih items.
+    /// Show snackbar at every 33 counts for selected Tasbih.
     if (["Subhanallah", "Alhamdulillah", "Allahu Akbar"].contains(item.title)) {
       if (item.currentCount > 0 && item.currentCount % 33 == 0) {
         Get.snackbar(
@@ -128,7 +126,7 @@ class AmolController extends GetxController {
       }
     }
 
-    /// Marks as completed if target reached.
+    /// Mark as completed when target reached.
     if (item.currentCount >= item.target && !item.isCompleted) {
       item.isCompleted = true;
       HapticFeedback.heavyImpact();
@@ -138,8 +136,8 @@ class AmolController extends GetxController {
     update(['item_$index', 'dashboard_stat']);
   }
 
-  /// Updates the target of a specific Amol.
-  /// If global is true, updates master list and all 30 days.
+  /// Updates target value.
+  /// If global is true, updates all 30 days of the selected year.
   void updateTarget(int index, int newTarget, bool isGlobal) {
     String title = dailyAmols[index].title;
 
@@ -149,17 +147,6 @@ class AmolController extends GetxController {
     saveData();
 
     if (isGlobal) {
-      List<AmolItem> master = (templateBox.get('master_list') ?? [])
-          .cast<AmolItem>()
-          .toList();
-
-      for (var e in master) {
-        if (e.title == title) e.target = newTarget;
-      }
-
-      templateBox.put('master_list', master);
-
-      /// Update all existing daily entries of this year.
       for (int i = 1; i <= 30; i++) {
         String key = "${selectedYear}_$i";
 
@@ -178,8 +165,8 @@ class AmolController extends GetxController {
     update(['item_$index', 'dashboard_stat']);
   }
 
-  /// Adds a new Amol item.
-  /// If global is true, it is added to master and all 30 days.
+  /// Adds a new Amol to current day.
+  /// If global is true, adds to all 30 days of selected year.
   void addNewAmol(String title, int target, bool isGlobal) {
     if (dailyAmols.any((e) => e.title == title)) return;
 
@@ -187,38 +174,26 @@ class AmolController extends GetxController {
     saveData();
 
     if (isGlobal) {
-      List<AmolItem> master = (templateBox.get('master_list') ?? [])
-          .cast<AmolItem>()
-          .toList();
-
-      if (!master.any((e) => e.title == title)) {
-        master.add(AmolItem(title: title, target: target));
-        templateBox.put('master_list', master);
-      }
-
-      /// Ensures new Amol exists in all 30 days.
       for (int i = 1; i <= 30; i++) {
         String key = "${selectedYear}_$i";
 
         List<AmolItem> dayData = amolBox.containsKey(key)
             ? amolBox.get(key)!.cast<AmolItem>().toList()
-            : master
-                  .map((e) => AmolItem(title: e.title, target: e.target))
-                  .toList();
+            : [];
 
-        if (!dayData.any((e) => e.title == title)) {
+        if (dayData.isNotEmpty && !dayData.any((e) => e.title == title)) {
           dayData.add(AmolItem(title: title, target: target));
+          amolBox.put(key, dayData);
         }
-
-        amolBox.put(key, dayData);
       }
     }
 
     update();
+    update(['dashboard_stat']);
   }
 
-  /// Deletes an Amol item.
-  /// If global is true, removes from master and all 30 days.
+  /// Deletes an Amol from current day.
+  /// If global is true, removes from all 30 days of selected year.
   void deleteAmol(int index, bool isGlobal) {
     String title = dailyAmols[index].title;
 
@@ -226,14 +201,6 @@ class AmolController extends GetxController {
     saveData();
 
     if (isGlobal) {
-      List<AmolItem> master = (templateBox.get('master_list') ?? [])
-          .cast<AmolItem>()
-          .toList();
-
-      master.removeWhere((e) => e.title == title);
-      templateBox.put('master_list', master);
-
-      /// Remove from all 30 days.
       for (int i = 1; i <= 30; i++) {
         String key = "${selectedYear}_$i";
 
@@ -247,9 +214,10 @@ class AmolController extends GetxController {
     }
 
     update();
+    update(['dashboard_stat']);
   }
 
-  /// Resets count and completion state of a specific Amol.
+  /// Resets count and completion state of an Amol.
   void resetAmol(int index) {
     dailyAmols[index].currentCount = 0;
     dailyAmols[index].isCompleted = false;
@@ -263,25 +231,29 @@ class AmolController extends GetxController {
     selectedYear = year;
     selectedDay = day;
     loadDailyData();
-    update(['dashboard_stat']);
   }
 
-  /// Returns aggregated monthly statistics
-  /// (total count per Amol title).
+  /// Returns monthly aggregated statistics
+  /// (total counts per Amol title).
   Map<String, int> getMonthStats() {
     Map<String, int> stats = {};
+
     for (int i = 1; i <= 30; i++) {
       String key = "${selectedYear}_$i";
+
       if (amolBox.containsKey(key)) {
         var rawList = amolBox.get(key);
+
         if (rawList != null) {
           List<AmolItem> dayList = rawList.cast<AmolItem>();
+
           for (var item in dayList) {
             stats[item.title] = (stats[item.title] ?? 0) + item.currentCount;
           }
         }
       }
     }
+
     return stats;
   }
 }
