@@ -263,6 +263,7 @@ class AmolController extends GetxController {
     selectedYear = year;
     selectedDay = day;
     loadDailyData();
+    update(['dashboard_stat']);
   }
 
   /// Returns aggregated monthly statistics

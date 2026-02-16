@@ -264,45 +264,47 @@ class DashboardCard extends StatelessWidget {
                         itemBuilder: (context, index) {
                           String title = stats.keys.elementAt(index);
                           int count = stats.values.elementAt(index);
-
                           return Container(
                             margin: const EdgeInsets.only(bottom: 12),
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 15,
-                              vertical: 12,
+                              horizontal: 16,
+                              vertical: 14,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.grey),
+                              color: const Color(0xFFF1F5F5),
+                              borderRadius: BorderRadius.circular(16),
                             ),
                             child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(
-                                  title,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 15,
+                                CircleAvatar(
+                                  radius: 18,
+                                  backgroundColor: const Color(
+                                    0xFF00695C,
+                                  ).withOpacity(0.1),
+                                  child: Text(
+                                    title[0], // নামের প্রথম অক্ষর
+                                    style: const TextStyle(
+                                      color: Color(0xFF00695C),
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(
-                                      0xFF00695C,
-                                    ).withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
+                                const SizedBox(width: 12),
+                                Expanded(
                                   child: Text(
-                                    "$count",
+                                    title,
                                     style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF00695C),
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 15,
                                     ),
+                                  ),
+                                ),
+                                Text(
+                                  "$count",
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 16,
+                                    color: Color(0xFF00695C),
                                   ),
                                 ),
                               ],
